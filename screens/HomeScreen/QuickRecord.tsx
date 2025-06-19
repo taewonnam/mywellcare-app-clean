@@ -1,10 +1,10 @@
 // QuickRecord.tsx
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { addDoc, collection, Timestamp } from 'firebase/firestore';
+import { db } from '../../firebase';
 
-// 빠른 기록을 위한 버튼 컴포넌트 정의
-export default function QuickRecord() {
-  // 버튼 항목 리스트 (화면에 동그란 버튼으로 나올 것들)
+export default function QuickRecord({ onRecordSaved }: { onRecordSaved?: () => void }) {
   const records = [
     { type: '식사', emoji: '🍱' },
     { type: '운동', emoji: '💪' },
@@ -12,16 +12,30 @@ export default function QuickRecord() {
     { type: '물', emoji: '💧' },
   ];
 
+  const handleRecord = async (type: string) => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      await addDoc(collection(db, 'records'), {
+        type,
+        date: today,
+        timestamp: Timestamp.now(),
+      });
+      console.log(`${type} 기록 Firestore에 저장됨`);
+
+      // ✅ 기록 저장 후 수치 갱신 트리거
+      if (onRecordSaved) onRecordSaved();
+    } catch (error) {
+      console.error('기록 저장 실패:', error);
+    }
+  };
+
   return (
     <View style={styles.container}>
       {records.map((item) => (
         <TouchableOpacity
           key={item.type}
           style={styles.button}
-          onPress={() => {
-            // 추후 Firebase 기록 저장 로직 들어갈 자리
-            console.log(`${item.type} 기록됨!`);
-          }}
+          onPress={() => handleRecord(item.type)}
         >
           <Text style={styles.emoji}>{item.emoji}</Text>
           <Text style={styles.label}>{item.type}</Text>
@@ -31,18 +45,17 @@ export default function QuickRecord() {
   );
 }
 
-// 버튼 스타일 정의
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',       // 가로 배치
+    flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 12,
   },
   button: {
     flex: 1,
-    aspectRatio: 1,             // 정사각형 → 원으로 만들기 위해
+    aspectRatio: 1,
     backgroundColor: '#e0f7fa',
-    borderRadius: 999,          // 완전한 원 만들기
+    borderRadius: 999,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -55,3 +68,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+

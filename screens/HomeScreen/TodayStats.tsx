@@ -2,23 +2,17 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
-// 임시로 오늘 기록된 항목 수를 하드코딩 (내일 Firestore 연동 예정)
-const mockStats = {
-  식사: 2,
-  운동: 1,
-  수면: 1,
-  물: 3,
-};
+export default function TodayStats({ counts }: { counts: Record<string, number> }) {
+  const types = ['식사', '운동', '수면', '물'];
 
-export default function TodayStats() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>오늘의 기록</Text>
       <View style={styles.statsRow}>
-        {Object.entries(mockStats).map(([key, value]) => (
-          <View key={key} style={styles.statBox}>
-            <Text style={styles.count}>{value}</Text>
-            <Text style={styles.label}>{key}</Text>
+        {types.map((type) => (
+          <View key={type} style={styles.statBox}>
+            <Text style={styles.count}>{counts[type] || 0}</Text>
+            <Text style={styles.label}>{type}</Text>
           </View>
         ))}
       </View>
@@ -26,7 +20,6 @@ export default function TodayStats() {
   );
 }
 
-// 스타일 정의
 const styles = StyleSheet.create({
   container: {
     padding: 16,
