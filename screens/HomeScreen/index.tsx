@@ -1,28 +1,46 @@
-// screens/HomeScreen/index.tsx
 import React from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { Text, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import QuickRecord from './QuickRecord';
-import TodayStats from './TodayStats';
 import FeedbackMessage from './FeedbackMessage';
-import WeeklyStats from './WeeklyStats';
-import useTodayRecords from '../../hooks/useTodayRecords';
+import usePoints from '../../hooks/usePoints';
 
-export default function HomeScreen() {
-  const { counts, refetch } = useTodayRecords();
+const HomeScreen = () => {
+  const userId = 'demoUser';
+  const { todayPoints } = usePoints(userId);
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <QuickRecord onRecordSaved={refetch} />
-      <TodayStats counts={counts} />
-      <FeedbackMessage />
-      <WeeklyStats />
-    </ScrollView>
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <View style={styles.container}>
+        <Text style={styles.point}>오늘 기록한 포인트: {todayPoints}점</Text>
+        <FeedbackMessage points={todayPoints} />
+        <View style={styles.spacer} />
+        <QuickRecord />
+      </View>
+    </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
   container: {
-    padding: 16,
-    gap: 16,
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    gap: 24,
+  },
+  point: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  spacer: {
+    height: 12,
   },
 });
+
+export default HomeScreen;

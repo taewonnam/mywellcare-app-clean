@@ -1,7 +1,7 @@
 // QuickRecord.tsx
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
-import { addDoc, collection, Timestamp } from 'firebase/firestore';
+import { addDoc, collection, Timestamp, doc, setDoc, increment } from 'firebase/firestore';
 import { db } from '../../firebase';
 
 export default function QuickRecord({ onRecordSaved }: { onRecordSaved?: () => void }) {
@@ -12,17 +12,31 @@ export default function QuickRecord({ onRecordSaved }: { onRecordSaved?: () => v
     { type: '물', emoji: '💧' },
   ];
 
+  const userId = 'demoUser'; // TODO: 추후 Firebase Auth 연동 시 교체
+  const today = new Date().toISOString().split('T')[0];
+
   const handleRecord = async (type: string) => {
     try {
-      const today = new Date().toISOString().split('T')[0];
-      await addDoc(collection(db, 'records'), {
+      // 1. 기록 저장
+      await addDoc(collection(db, 'records', today, userId), {
         type,
         date: today,
         timestamp: Timestamp.now(),
       });
       console.log(`${type} 기록 Firestore에 저장됨`);
 
-      // ✅ 기록 저장 후 수치 갱신 트리거
+      // 2. 포인트 정산 (todayPoints +1, totalPoints +1)
+      await setDoc(
+        doc(db, 'userStats', userId),
+        {
+          todayPoints: increment(1),
+          totalPoints: increment(1),
+        },
+        { merge: true }
+      );
+      console.log('포인트 +1 누적 완료');
+
+      // 3. 수치 갱신 콜백
       if (onRecordSaved) onRecordSaved();
     } catch (error) {
       console.error('기록 저장 실패:', error);
