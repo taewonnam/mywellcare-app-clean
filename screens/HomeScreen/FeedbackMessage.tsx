@@ -1,4 +1,3 @@
-// FeedbackMessage.tsx
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
@@ -11,11 +10,9 @@ const getFeedbackMessage = (points: number): string => {
 };
 
 const FeedbackMessage = ({ points }: { points: number }) => {
-  const message = getFeedbackMessage(points);
-
   return (
     <View style={styles.container}>
-      <Text style={styles.message}>{message}</Text>
+      <Text style={styles.message}>{String(getFeedbackMessage(points))}</Text>
     </View>
   );
 };

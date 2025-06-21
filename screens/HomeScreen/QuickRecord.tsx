@@ -1,10 +1,15 @@
-// QuickRecord.tsx
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { addDoc, collection, Timestamp, doc, setDoc, increment } from 'firebase/firestore';
 import { db } from '../../firebase';
 
-export default function QuickRecord({ onRecordSaved }: { onRecordSaved?: () => void }) {
+export default function QuickRecord({
+  onRecordSaved,
+  onPointUpdate,
+}: {
+  onRecordSaved?: () => void;
+  onPointUpdate?: () => void;
+}) {
   const records = [
     { type: '식사', emoji: '🍱' },
     { type: '운동', emoji: '💪' },
@@ -12,14 +17,15 @@ export default function QuickRecord({ onRecordSaved }: { onRecordSaved?: () => v
     { type: '물', emoji: '💧' },
   ];
 
-  const userId = 'demoUser'; // TODO: 추후 Firebase Auth 연동 시 교체
+  const userId = 'demoUser'; // 추후 Firebase Auth 연동 시 교체
   const today = new Date().toISOString().split('T')[0];
 
   const handleRecord = async (type: string) => {
     try {
       // 1. 기록 저장
-      await addDoc(collection(db, 'records', today, userId), {
+      await addDoc(collection(db, 'records'), {
         type,
+        uid: userId,
         date: today,
         timestamp: Timestamp.now(),
       });
@@ -37,7 +43,8 @@ export default function QuickRecord({ onRecordSaved }: { onRecordSaved?: () => v
       console.log('포인트 +1 누적 완료');
 
       // 3. 수치 갱신 콜백
-      if (onRecordSaved) onRecordSaved();
+      if (onRecordSaved) onRecordSaved();       // 기록 수치 업데이트
+      if (onPointUpdate) onPointUpdate();       // 포인트 수치 업데이트
     } catch (error) {
       console.error('기록 저장 실패:', error);
     }
@@ -82,4 +89,3 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
-

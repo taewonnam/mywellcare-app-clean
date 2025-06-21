@@ -1,80 +1,89 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { collection, query, where, getDocs, deleteDoc, doc, setDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
-import { doc, setDoc, collection, getDocs, deleteDoc } from 'firebase/firestore';
+import useTodayRecords from '../../hooks/useTodayRecords';
+import usePoints from '../../hooks/usePoints';
 
-const MyInfoScreen = () => {
+export default function MyInfoScreen() {
   const userId = 'demoUser';
-  const today = new Date().toISOString().split('T')[0];
+  const { refetch: refetchRecords } = useTodayRecords();
+  const { refetch: refetchPoints } = usePoints(userId);
 
-  // ✅ 오늘 포인트 초기화
-  const resetTodayPoints = async () => {
+  const resetPoints = async () => {
     try {
       await setDoc(
         doc(db, 'userStats', userId),
-        { todayPoints: 0 },
+        { todayPoints: 0, totalPoints: 0 },
         { merge: true }
       );
-      Alert.alert('✅ 오늘 포인트가 초기화되었습니다!');
+      await refetchPoints(); // ✅ 수치 즉시 반영
+      Alert.alert('초기화 완료', '포인트가 초기화되었습니다.');
     } catch (error) {
-      console.error('오늘 포인트 초기화 실패:', error);
-      Alert.alert('❌ 오류', '오늘 포인트 초기화 중 문제가 발생했습니다.');
+      console.error('포인트 초기화 실패:', error);
     }
   };
 
-  // ✅ 총 포인트 초기화
-  const resetTotalPoints = async () => {
+  const resetTodayRecords = async () => {
     try {
-      await setDoc(
-        doc(db, 'userStats', userId),
-        { totalPoints: 0 },
-        { merge: true }
+      const today = new Date().toISOString().split('T')[0];
+      const q = query(
+        collection(db, 'records'),
+        where('uid', '==', userId),
+        where('date', '==', today)
       );
-      Alert.alert('✅ 총 포인트가 초기화되었습니다!');
+      const snapshot = await getDocs(q);
+      const deletes = snapshot.docs.map((docSnap) => deleteDoc(docSnap.ref));
+      await Promise.all(deletes);
+      await refetchRecords(); // ✅ 수치 즉시 반영
+      Alert.alert('초기화 완료', '오늘의 기록이 모두 삭제되었습니다.');
     } catch (error) {
-      console.error('총 포인트 초기화 실패:', error);
-      Alert.alert('❌ 오류', '총 포인트 초기화 중 문제가 발생했습니다.');
+      console.error('기록 초기화 실패:', error);
     }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>⚙️ 내 정보</Text>
+      <Text style={styles.title}>내 정보</Text>
 
-      <TouchableOpacity style={styles.button} onPress={resetTodayPoints}>
-        <Text style={styles.buttonText}>오늘 포인트 초기화</Text>
+      <TouchableOpacity style={styles.button} onPress={resetPoints}>
+        <Text style={styles.buttonText}>🔄 포인트 초기화</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.button} onPress={resetTotalPoints}>
-        <Text style={styles.buttonText}>총 포인트 초기화</Text>
+      <TouchableOpacity style={styles.button} onPress={resetTodayRecords}>
+        <Text style={styles.buttonText}>🧹 오늘의 기록 초기화</Text>
       </TouchableOpacity>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 24,
-    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingHorizontal: 24,
     justifyContent: 'center',
-    gap: 20,
   },
   title: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
-    marginBottom: 24,
+    marginBottom: 32,
+    alignSelf: 'center',
   },
   button: {
-    backgroundColor: '#ffccbc',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 12,
+    backgroundColor: '#fce4ec',
+    paddingVertical: 18,
+    borderRadius: 16,
+    alignItems: 'center',
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
   },
   buttonText: {
-    fontWeight: 'bold',
     fontSize: 16,
+    fontWeight: 'bold',
+    color: '#c2185b',
   },
 });
-
-export default MyInfoScreen;

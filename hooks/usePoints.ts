@@ -1,26 +1,30 @@
-// usePoints.ts
-import { useEffect, useState } from 'react';
+// hooks/usePoints.ts
+import { useEffect, useState, useCallback } from 'react';
+import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
 
-const usePoints = (userId: string) => {
+export default function usePoints(userId: string) {
   const [todayPoints, setTodayPoints] = useState(0);
   const [totalPoints, setTotalPoints] = useState(0);
 
-  useEffect(() => {
-    const ref = doc(db, 'userStats', userId);
-    const unsub = onSnapshot(ref, (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setTodayPoints(data.todayPoints || 0);
-        setTotalPoints(data.totalPoints || 0);
-      }
-    });
+  const fetchPoints = useCallback(async () => {
+    const userStatsRef = doc(db, 'userStats', userId);
+    const docSnap = await getDoc(userStatsRef);
+    const data = docSnap.data();
 
-    return () => unsub();
+    if (data) {
+      setTodayPoints(data.todayPoints || 0);
+      setTotalPoints(data.totalPoints || 0);
+    }
   }, [userId]);
 
-  return { todayPoints, totalPoints };
-};
+  useEffect(() => {
+    fetchPoints();
+  }, [fetchPoints]);
 
-export default usePoints;
+  return {
+    todayPoints,
+    totalPoints,
+    refetch: fetchPoints, // ✅ 여기에 refetch 추가!
+  };
+}
