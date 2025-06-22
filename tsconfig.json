@@ -13,14 +13,14 @@
     "strict": false,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "types": [
-      "react",
-      "react-native"
-    ]
+    "types": ["react", "react-native"],
+
+    // ✅ 추가: alias 설정
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    }
   },
-  "exclude": [
-    "node_modules",
-    "babel.config.js"
-  ],
+  "exclude": ["node_modules", "babel.config.js"],
   "extends": "expo/tsconfig.base"
 }

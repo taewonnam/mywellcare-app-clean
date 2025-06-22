@@ -1,29 +1,31 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { collection, query, where, getDocs, deleteDoc, doc, setDoc } from 'firebase/firestore';
-import { db } from '../../firebase';
-import useTodayRecords from '../../hooks/useTodayRecords';
-import usePoints from '../../hooks/usePoints';
+import { db } from '@/firebase';
+import useTodayRecords from '@/hooks/useTodayRecords';
+import usePoints from '@/hooks/usePoints';
 
 export default function MyInfoScreen() {
   const userId = 'demoUser';
   const { refetch: refetchRecords } = useTodayRecords();
   const { refetch: refetchPoints } = usePoints(userId);
 
+  // ✅ 포인트 초기화
   const resetPoints = async () => {
     try {
       await setDoc(
         doc(db, 'userStats', userId),
-        { todayPoints: 0, totalPoints: 0 },
+        { todayPoints: 0, totalPoints: 0, isRewarded: false },
         { merge: true }
       );
-      await refetchPoints(); // ✅ 수치 즉시 반영
+      await refetchPoints();
       Alert.alert('초기화 완료', '포인트가 초기화되었습니다.');
     } catch (error) {
       console.error('포인트 초기화 실패:', error);
     }
   };
 
+  // ✅ 오늘 기록 초기화
   const resetTodayRecords = async () => {
     try {
       const today = new Date().toISOString().split('T')[0];
@@ -35,12 +37,31 @@ export default function MyInfoScreen() {
       const snapshot = await getDocs(q);
       const deletes = snapshot.docs.map((docSnap) => deleteDoc(docSnap.ref));
       await Promise.all(deletes);
-      await refetchRecords(); // ✅ 수치 즉시 반영
+      await refetchRecords();
       Alert.alert('초기화 완료', '오늘의 기록이 모두 삭제되었습니다.');
     } catch (error) {
       console.error('기록 초기화 실패:', error);
     }
   };
+
+    // ✅ 최대 포인트 수치(currentMaxPoints)만 초기화
+    const resetRewardStatus = async () => {
+      try {
+        await setDoc(
+          doc(db, 'userStats', userId),
+          {
+            currentMaxPoints: 0, // ✅ 최대 포인트 수치만 초기화
+            isRewarded: false,   // ✅ 회색 표시 제거
+          },
+          { merge: true }
+        );
+        await refetchPoints();
+        Alert.alert('초기화 완료', '최대 포인트 수치가 초기화되었습니다.');
+      } catch (error) {
+        console.error('최대 포인트 상태 초기화 실패:', error);
+      }
+    };
+
 
   return (
     <View style={styles.container}>
@@ -52,6 +73,15 @@ export default function MyInfoScreen() {
 
       <TouchableOpacity style={styles.button} onPress={resetTodayRecords}>
         <Text style={styles.buttonText}>🧹 오늘의 기록 초기화</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.button, styles.dimButton]}
+        onPress={resetRewardStatus}
+      >
+        <Text style={[styles.buttonText, styles.dimButtonText]}>
+          🧯 최대 포인트 상태 초기화
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -85,5 +115,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#c2185b',
+  },
+  dimButton: {
+    backgroundColor: '#eeeeee',
+  },
+  dimButtonText: {
+    color: '#666',
   },
 });

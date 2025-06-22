@@ -4,18 +4,26 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import QuickRecord from './QuickRecord';
 import FeedbackMessage from './FeedbackMessage';
 import TodayStats from './TodayStats';
-import usePoints from '../../hooks/usePoints';
-import useTodayRecords from '../../hooks/useTodayRecords';
+import useTodayRecords from '@/hooks/useTodayRecords';
+import usePoints from '@/hooks/usePoints';
 import { useFocusEffect } from '@react-navigation/native';
+import { MAX_POINTS } from '@/constants/maxPoints';
 
 const HomeScreen = () => {
   const userId = 'demoUser';
-  const { todayPoints, refetch: refetchPoints } = usePoints(userId);
+
+  const {
+    todayPoints,
+    currentMaxPoints, // ✅ 추가된 값
+    isRewarded,
+    refetch: refetchPoints,
+  } = usePoints(userId);
+
   const { counts, refetch: refetchRecords } = useTodayRecords();
 
-  // ✅ 화면에 들어올 때마다 자동으로 최신화
   useFocusEffect(
     useCallback(() => {
+      console.log('📌 HomeScreen 진입: refetchPoints, refetchRecords 실행');
       refetchPoints();
       refetchRecords();
     }, [refetchPoints, refetchRecords])
@@ -24,14 +32,33 @@ const HomeScreen = () => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.container}>
-        <Text style={styles.point}>{`오늘 기록한 포인트: ${todayPoints}점`}</Text>
+        {/* ✅ 오늘 포인트 + 최대 포인트 분리 표시 */}
+        <View style={styles.pointContainer}>
+          <Text style={styles.todayPoint}>
+            오늘 포인트: {todayPoints}점
+          </Text>
+
+          {isRewarded ? (
+            <Text style={[styles.maxPoint, styles.maxPointReached]}>
+              오늘의 최대 목표치에 도달하였습니다.
+            </Text>
+          ) : (
+            <Text style={styles.maxPoint}>
+              최대 포인트: {currentMaxPoints}점 / {MAX_POINTS}점
+            </Text>
+          )}
+        </View>
+
+
         <FeedbackMessage points={todayPoints} />
         <TodayStats counts={counts} />
+
         <View style={styles.spacer} />
+
         <QuickRecord
           onRecordSaved={refetchRecords}
           onPointUpdate={refetchPoints}
-          />
+        />
       </View>
     </SafeAreaView>
   );
@@ -50,10 +77,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 24,
   },
-  point: {
+  pointContainer: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  todayPoint: {
     fontSize: 18,
     fontWeight: 'bold',
+    color: '#000',
   },
+  maxPoint: {
+  fontSize: 16,
+  fontWeight: '600',
+  color: '#000', // ✅ 검정색
+  },
+  maxPointReached: {
+    color: '#ccc', // ✅ 회색
+  },
+
   spacer: {
     height: 12,
   },

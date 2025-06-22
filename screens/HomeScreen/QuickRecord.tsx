@@ -1,7 +1,16 @@
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
-import { addDoc, collection, Timestamp, doc, setDoc, increment } from 'firebase/firestore';
+import {
+  addDoc,
+  collection,
+  Timestamp,
+  doc,
+  setDoc,
+  increment,
+  getDoc,
+} from 'firebase/firestore';
 import { db } from '../../firebase';
+import { MAX_POINTS } from '@/constants/maxPoints';
 
 export default function QuickRecord({
   onRecordSaved,
@@ -20,35 +29,48 @@ export default function QuickRecord({
   const userId = 'demoUser'; // 추후 Firebase Auth 연동 시 교체
   const today = new Date().toISOString().split('T')[0];
 
-  const handleRecord = async (type: string) => {
-    try {
-      // 1. 기록 저장
-      await addDoc(collection(db, 'records'), {
-        type,
-        uid: userId,
-        date: today,
-        timestamp: Timestamp.now(),
-      });
-      console.log(`${type} 기록 Firestore에 저장됨`);
+ const handleRecord = async (type: string) => {
+  try {
+    // ✅ 현재 포인트 가져오기
+    const statsRef = doc(db, 'userStats', userId);
+    const snap = await getDoc(statsRef);
+    const data = snap.data();
+    const currentMaxPoints = data?.currentMaxPoints || 0;
 
-      // 2. 포인트 정산 (todayPoints +1, totalPoints +1)
-      await setDoc(
-        doc(db, 'userStats', userId),
-        {
-          todayPoints: increment(1),
-          totalPoints: increment(1),
-        },
-        { merge: true }
-      );
-      console.log('포인트 +1 누적 완료');
+    const isMaxed = currentMaxPoints >= MAX_POINTS;
 
-      // 3. 수치 갱신 콜백
-      if (onRecordSaved) onRecordSaved();       // 기록 수치 업데이트
-      if (onPointUpdate) onPointUpdate();       // 포인트 수치 업데이트
-    } catch (error) {
-      console.error('기록 저장 실패:', error);
-    }
-  };
+    // 1. 기록 저장 (항상 허용)
+    await addDoc(collection(db, 'records'), {
+      type,
+      uid: userId,
+      date: today,
+      timestamp: Timestamp.now(),
+    });
+    console.log(`${type} 기록 Firestore에 저장됨`);
+
+    // 2. 포인트 정산
+    const willBeMaxed = currentMaxPoints + 1 >= MAX_POINTS;
+
+    await setDoc(
+      statsRef,
+      {
+        todayPoints: increment(1),       // ✅ 항상 증가
+        totalPoints: increment(1),       // ✅ 항상 증가
+        ...(isMaxed ? {} : { currentMaxPoints: increment(1) }), // ✅ 100 이상이면 증가 ❌
+        ...(willBeMaxed && { isRewarded: true }),
+      },
+      { merge: true }
+    );
+    console.log('포인트 정산 완료');
+    
+    // 3. 콜백
+    onRecordSaved?.();
+    onPointUpdate?.();
+  } catch (error) {
+    console.error('기록 저장 실패:', error);
+  }
+};
+
 
   return (
     <View style={styles.container}>
